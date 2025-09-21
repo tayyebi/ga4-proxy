@@ -1,0 +1,39 @@
+name = "ga4-analytics-proxy"
+compatibility_date = "2025-09-21"
+compatibility_flags = ["nodejs_compat"]
+
+# Replace with your actual domain
+route = "tyyi.net/*"
+
+# Environment variables - replace with your actual values
+vars = { 
+  GA_MEASUREMENT_ID = "G-XXXXXXXXXX", 
+  GA_API_SECRET = "your_api_secret_here" 
+}
+
+# Build configuration
+[build]
+upload = { format = "service-worker" }
+
+# Optional: Enable logging
+[logpush]
+enabled = true
+
+# Optional: Add analytics engine for advanced logging
+[analytics_engine_datasets]
+GA4_ANALYTICS_LOGS = { dataset = "ga4_analytics_logs" }
+
+# Optional: Environment-specific configurations
+[env.production]
+route = "tyyi.net/*"
+vars = { 
+  GA_MEASUREMENT_ID = "G-PRODUCTION_ID", 
+  GA_API_SECRET = "production_secret_here" 
+}
+
+[env.staging]
+route = "staging.tyyi.net/*"
+vars = { 
+  GA_MEASUREMENT_ID = "G-STAGING_ID", 
+  GA_API_SECRET = "staging_secret_here" 
+}
