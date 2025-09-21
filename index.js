@@ -41,7 +41,7 @@ export default {
     const hostname = url.hostname;
     
     // Domain validation - only process allowed domains
-    const allowedDomains = ['yourdomain.com', 'www.yourdomain.com'];
+    const allowedDomains = ['tyyi.net', 'www.tyyi.net'];
     if (!allowedDomains.includes(hostname)) {
       log.info('Skipping analytics for unauthorized domain', { hostname });
       return fetch(request);
