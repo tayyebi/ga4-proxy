@@ -1,9 +1,35 @@
 /*  
  * Author: Mohammad R. Tayyebi <m@tyyi.net>  
  * Purpose: GA4 Measurement Protocol proxy implementation  
- * Date: 2025-09-21  
- * Optimized: 2025-09-21
+ * Date: 2025-09-21
  */
+
+// Configuration - Update these values for your setup
+const CONFIG = {
+  // Replace with your GA4 Measurement ID
+  GA_MEASUREMENT_ID: "G-XXXXXXXXXX",
+  
+  // Replace with your GA4 API Secret
+  GA_API_SECRET: "your_api_secret_here",
+  
+  // Replace with your domain(s)
+  ALLOWED_DOMAINS: ["tyyi.net", "www.tyyi.net"],
+  
+  // Static file extensions to skip tracking
+  STATIC_EXTENSIONS: [
+    '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', 
+    '.woff', '.woff2', '.ttf', '.webp', '.mp4', '.webm', '.mp3', '.json'
+  ],
+  
+  // Bot user agent patterns
+  BOT_PATTERNS: [
+    'bot', 'crawl', 'spider', 'slurp', 'search', 'archiver', 
+    'feed', 'indexer', 'monitor', 'checker', 'scanner'
+  ],
+  
+  // Paths to skip tracking
+  SKIP_PATHS: ['/health', '/status', '/admin']
+};
 
 // Structured logging utility
 const log = {
@@ -41,8 +67,7 @@ export default {
     const hostname = url.hostname;
     
     // Domain validation - only process allowed domains
-    const allowedDomains = ['tyyi.net', 'www.tyyi.net'];
-    if (!allowedDomains.includes(hostname)) {
+    if (!CONFIG.ALLOWED_DOMAINS.includes(hostname)) {
       log.info('Skipping analytics for unauthorized domain', { hostname });
       return fetch(request);
     }
@@ -62,7 +87,7 @@ export default {
     }
 
     // Send analytics asynchronously (non-blocking)
-    ctx.waitUntil(sendAnalytics(env, request, clientId));
+    ctx.waitUntil(sendAnalytics(request, clientId));
 
     // Fetch origin response
     const originRes = await fetch(request);
@@ -74,15 +99,9 @@ export default {
 
 // Helper functions
 function shouldSkipAnalytics(request, url) {
-  // Skip for common static files
-  const staticExtensions = [
-    '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', 
-    '.woff', '.woff2', '.ttf', '.webp', '.mp4', '.webm', '.mp3', '.json'
-  ];
-  
   const path = url.pathname.toLowerCase();
   const userAgent = request.headers.get('user-agent');
-  const isStaticFile = staticExtensions.some(ext => path.endsWith(ext));
+  const isStaticFile = CONFIG.STATIC_EXTENSIONS.some(ext => path.endsWith(ext));
   const isBotRequest = isBot(userAgent);
   
   if (isStaticFile) {
@@ -95,8 +114,8 @@ function shouldSkipAnalytics(request, url) {
     return true;
   }
   
-  // Skip health checks and admin paths
-  if (path.includes('/health') || path.includes('/status') || path.includes('/admin')) {
+  // Skip configured paths
+  if (CONFIG.SKIP_PATHS.some(skipPath => path.includes(skipPath))) {
     log.info('Skipping analytics for system path', { path });
     return true;
   }
@@ -106,11 +125,7 @@ function shouldSkipAnalytics(request, url) {
 
 function isBot(userAgent) {
   if (!userAgent) return false;
-  const bots = [
-    'bot', 'crawl', 'spider', 'slurp', 'search', 'archiver', 
-    'feed', 'indexer', 'monitor', 'checker', 'scanner'
-  ];
-  return bots.some(bot => userAgent.toLowerCase().includes(bot));
+  return CONFIG.BOT_PATTERNS.some(bot => userAgent.toLowerCase().includes(bot));
 }
 
 function extractClientId(request) {
@@ -121,7 +136,7 @@ function extractClientId(request) {
   return match ? match[1] : null;
 }
 
-async function sendAnalytics(env, request, clientId) {
+async function sendAnalytics(request, clientId) {
   try {
     const url = new URL(request.url);
     
@@ -146,10 +161,10 @@ async function sendAnalytics(env, request, clientId) {
     log.info('Sending analytics event', { 
       clientId, 
       page: url.pathname,
-      measurementId: env.GA_MEASUREMENT_ID 
+      measurementId: CONFIG.GA_MEASUREMENT_ID 
     });
 
-    const analyticsUrl = `https://www.google-analytics.com/mp/collect?measurement_id=${encodeURIComponent(env.GA_MEASUREMENT_ID)}&api_secret=${encodeURIComponent(env.GA_API_SECRET)}`;
+    const analyticsUrl = `https://www.google-analytics.com/mp/collect?measurement_id=${encodeURIComponent(CONFIG.GA_MEASUREMENT_ID)}&api_secret=${encodeURIComponent(CONFIG.GA_API_SECRET)}`;
     
     const response = await fetch(analyticsUrl, {
       method: 'POST',
